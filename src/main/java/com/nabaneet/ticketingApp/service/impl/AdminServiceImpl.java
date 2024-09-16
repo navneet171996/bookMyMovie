@@ -2,6 +2,7 @@ package com.nabaneet.ticketingApp.service.impl;
 
 import com.nabaneet.ticketingApp.dto.AddScreenToTheatreDto;
 import com.nabaneet.ticketingApp.dto.AddTheatreDTO;
+import com.nabaneet.ticketingApp.dto.SeatTypeDto;
 import com.nabaneet.ticketingApp.entity.City;
 import com.nabaneet.ticketingApp.entity.Screen;
 import com.nabaneet.ticketingApp.entity.Seat;
@@ -61,40 +62,35 @@ public class AdminServiceImpl implements AdminService {
             Theatre theatre = theatreOptional.get();
             Screen screen = new Screen();
             screen.setName(addScreenToTheatreDto.getScreenName());
+            screen.setTheatre(theatre);
+            Screen retVal = screenRepository.save(screen);
             addScreenToTheatreDto.getSeatTypes().forEach(seatType -> {
                 if(seatType.getNoOfSeats() % addScreenToTheatreDto.getSeatsInOneRow() != 0){
                     throw new RuntimeException("Seat arrangement is not possible");
                 }
                 List<Seat> seats = new ArrayList<>();
-                int noOfRows = seatType.getNoOfSeats() % addScreenToTheatreDto.getSeatsInOneRow();
+                int noOfRows = seatType.getNoOfSeats() / addScreenToTheatreDto.getSeatsInOneRow();
                 char seatRow = 'A';
-                int seatNo=1;
                 for(int i=1;i<=noOfRows;i++) {
-                    Seat seat = new Seat();
-                    seat.setSeatType(seatType.getSeatType());
-                    seat.setScreen(screen);
-                    if (seatType.getSeatType() == SeatType.RECLINER) {
-                        seat.setSeatNo("R_" + seatRow + seatNo);
-                        seatNo++;
-                    } else if (seatType.getSeatType() == SeatType.PREMIUM) {
-                        seat.setSeatNo("P_" + seatRow + seatNo);
-                        seatNo++;
-                    } else if (seatType.getSeatType() == SeatType.CLASSIC) {
-                        seat.setSeatNo("C_" + seatRow + seatNo);
-                        seatNo++;
-                    } else if (seatType.getSeatType() == SeatType.BASE) {
-                        seat.setSeatNo("B_" + seatRow + seatNo);
-                        seatNo++;
+                    for(int j=1;j<=addScreenToTheatreDto.getSeatsInOneRow();j++){
+                        Seat seat = new Seat();
+                        seat.setSeatType(seatType.getSeatType());
+                        seat.setScreen(screen);
+                        if (seatType.getSeatType() == SeatType.RECLINER) {
+                            seat.setSeatNo("R_" + seatRow + j);
+                        } else if (seatType.getSeatType() == SeatType.PREMIUM) {
+                            seat.setSeatNo("P_" + seatRow + j);
+                        } else if (seatType.getSeatType() == SeatType.CLASSIC) {
+                            seat.setSeatNo("C_" + seatRow + j);
+                        } else if (seatType.getSeatType() == SeatType.BASE) {
+                            seat.setSeatNo("B_" + seatRow + j);
+                        }
+                        seats.add(seat);
                     }
-                    seats.add(seat);
                     seatRow++;
                 }
                 seatRepository.saveAll(seats);
             });
-            theatre.getScreens().add(screen);
-            screen.setTheatre(theatre);
-            Screen retVal = screenRepository.save(screen);
-            theatreRepository.save(theatre);
             return retVal.getId();
         }else {
             throw new RuntimeException("Theatre is not present in DB");
